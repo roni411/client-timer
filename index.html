@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Timer</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ════ PANEL: IDLE ════ -->
+  <div id="panel-idle" class="panel active">
+    <div class="widget-header">
+      <div class="header-left">
+        <span>Client Timer</span>
+      </div>
+      <div class="header-right">
+        <button class="icon-btn purple" id="btn-open-edit" title="עריכת לקוחות">⚙</button>
+        <button class="icon-btn" id="btn-minimize-idle" title="מזעור">—</button>
+      </div>
+    </div>
+
+    <select class="client-select" id="client-select">
+      <option value="">בחרי לקוח...</option>
+    </select>
+
+    <button class="btn btn-green" id="btn-start">▶ התחל</button>
+
+    <a href="reports.html" class="reports-link">📊 דוחות</a>
+  </div>
+
+  <!-- ════ PANEL: RUNNING ════ -->
+  <div id="panel-running" class="panel">
+    <div class="widget-header">
+      <div class="header-left">
+        <span class="dot-red"></span>
+        <span>פעיל</span>
+      </div>
+      <div class="header-right">
+        <button class="icon-btn" id="btn-minimize-running" title="מזעור">—</button>
+      </div>
+    </div>
+
+    <div class="timer-client-name" id="running-client-name"></div>
+    <div class="timer-display" id="timer-display">00:00:00</div>
+
+    <button class="btn btn-red" id="btn-stop">⏹ עצור</button>
+
+    <a href="reports.html" class="reports-link">📊 דוחות</a>
+  </div>
+
+  <!-- ════ PANEL: EDIT ════ -->
+  <div id="panel-edit" class="panel">
+    <div class="widget-header">
+      <div class="header-left">
+        <span>עריכת לקוחות</span>
+      </div>
+      <div class="header-right">
+        <button class="icon-btn purple" id="btn-close-edit" title="חזרה">✕</button>
+      </div>
+    </div>
+
+    <div class="edit-list" id="edit-list"></div>
+
+    <button class="add-btn" id="btn-add-client">+ הוסף לקוח</button>
+    <button class="btn btn-purple" id="btn-save-clients">✓ שמור וחזור</button>
+  </div>
+
+</div>
+
+<!-- ════ MINI BAR (minimized state) ════ -->
+<div id="mini-bar">
+  <div class="mini-status" id="mini-status">
+    <span id="mini-indicator">⏸</span>
+    <span id="mini-time"></span>
+  </div>
+  <button class="mini-action-btn" id="mini-action-btn"></button>
+  <button class="mini-expand-btn" id="btn-expand" title="הרחב">⬆</button>
+</div>
+
+<!-- ════ NOTIFICATION PERMISSION BAR ════ -->
+<div class="notif-bar" id="notif-bar" style="display:none">
+  <span>אפשרי תזכורות כדי שלא תשכחי לעצור</span>
+  <button id="btn-allow-notif">אפשרי</button>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

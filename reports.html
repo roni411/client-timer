@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>דוחות — Client Timer</title>
+  <link rel="stylesheet" href="reports.css">
+  <!-- SheetJS for Excel export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <a href="index.html" class="back-link">← חזרה לטיימר</a>
+      <div class="topbar-title">📊 דוחות זמן</div>
+    </div>
+    <button class="btn-excel" id="btn-export">📗 ייצוא ל-Excel</button>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="card">
+    <div class="filter-grid">
+
+      <div class="filter-group">
+        <div class="filter-label">לקוחות</div>
+        <div class="pills" id="client-pills"></div>
+      </div>
+
+      <div class="filter-group">
+        <div class="filter-label">תקופה</div>
+        <div class="date-presets">
+          <button class="preset-btn" data-preset="week">השבוע</button>
+          <button class="preset-btn active" data-preset="month">החודש</button>
+          <button class="preset-btn" data-preset="3months">3 חודשים</button>
+          <button class="preset-btn" data-preset="all">הכל</button>
+        </div>
+        <div class="date-range">
+          <input class="date-input" type="date" id="date-from" />
+          <span class="date-sep">—</span>
+          <input class="date-input" type="date" id="date-to" />
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SUMMARY CHIPS -->
+  <div class="chips-row" id="chips-row"></div>
+
+  <!-- TABLE -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>תאריך</th>
+          <th>לקוח</th>
+          <th>שעת התחלה</th>
+          <th>שעת סיום</th>
+          <th>משך</th>
+        </tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </div>
+
+<script src="reports.js"></script>
+</body>
+</html>
