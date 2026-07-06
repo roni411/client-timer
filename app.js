@@ -44,16 +44,18 @@ const panels = {
   running: document.getElementById('panel-running'),
   edit:    document.getElementById('panel-edit')
 };
-const miniBar          = document.getElementById('mini-bar');
-const clientSelect     = document.getElementById('client-select');
-const timerDisplay     = document.getElementById('timer-display');
-const runningClientName= document.getElementById('running-client-name');
-const editList         = document.getElementById('edit-list');
-const miniStatus       = document.getElementById('mini-status');
-const miniTime         = document.getElementById('mini-time');
-const miniIndicator    = document.getElementById('mini-indicator');
-const miniActionBtn    = document.getElementById('mini-action-btn');
-const notifBar         = document.getElementById('notif-bar');
+const miniBar            = document.getElementById('mini-bar');
+const clientSelect       = document.getElementById('client-select');
+const timerDisplay       = document.getElementById('timer-display');
+const runningClientName  = document.getElementById('running-client-name');
+const editList           = document.getElementById('edit-list');
+const miniStatus         = document.getElementById('mini-status');
+const miniTime           = document.getElementById('mini-time');
+const miniIndicator      = document.getElementById('mini-indicator');
+const miniActionBtn      = document.getElementById('mini-action-btn');
+const notifBar           = document.getElementById('notif-bar');
+const activityInput      = document.getElementById('activity-input');
+const activityInputRunning = document.getElementById('activity-input-running');
 
 // ═══════════════════════════════════════
 //  PANEL SWITCHING
@@ -112,12 +114,18 @@ function tickTimer() {
   checkReminder(ms);
 }
 
+function syncActivity() {
+  // keep both activity fields in sync
+  activityInputRunning.value = activityInput.value;
+}
+
 function startTimer(clientName) {
   session = { client: clientName, startTime: new Date().toISOString() };
   Storage.set(KEYS.SESSION, session);
   lastNotifiedMin = 0;
 
   runningClientName.textContent = clientName;
+  activityInputRunning.value = activityInput.value;
   updateMiniBar();
   showPanel('running');
 
@@ -135,12 +143,15 @@ function stopTimer() {
   const end = new Date().toISOString();
   const durationMs = elapsedMs();
 
+  const activity = activityInputRunning.value.trim();
+
   const entry = {
     id:         Date.now(),
     client:     session.client,
     start:      session.startTime,
     end:        end,
-    durationMs: durationMs
+    durationMs: durationMs,
+    activity:   activity
   };
 
   entries.push(entry);
@@ -148,6 +159,10 @@ function stopTimer() {
 
   session = null;
   Storage.set(KEYS.SESSION, null);
+
+  // clear activity fields
+  activityInput.value = '';
+  activityInputRunning.value = '';
 
   showPanel('idle');
   updateMiniBar();
@@ -351,6 +366,14 @@ document.getElementById('btn-add-client').addEventListener('click', () => {
   // focus last input
   const inputs = editList.querySelectorAll('.client-input');
   if (inputs.length) inputs[inputs.length - 1].focus();
+});
+
+// Sync activity between idle and running panels
+activityInput.addEventListener('input', () => {
+  activityInputRunning.value = activityInput.value;
+});
+activityInputRunning.addEventListener('input', () => {
+  activityInput.value = activityInputRunning.value;
 });
 
 // Notification permission

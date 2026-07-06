@@ -164,6 +164,7 @@ function renderTable(entries) {
     tr.innerHTML = `
       <td>${formatDate(e.start)}</td>
       <td><span class="badge" style="background:${col.bg};color:${col.color}">${e.client}</span></td>
+      <td style="color:#555;max-width:180px;overflow:hidden;text-overflow:ellipsis">${e.activity || '—'}</td>
       <td>${formatTime(e.start)}</td>
       <td>${formatTime(e.end)}</td>
       <td class="duration-cell">${formatDurationFull(e.durationMs)}</td>
@@ -223,17 +224,18 @@ document.getElementById('btn-export').addEventListener('click', () => {
   if (filtered.length === 0) { alert('אין נתונים לייצוא בטווח הנבחר'); return; }
 
   const rows = filtered.map(e => ({
-    'תאריך':        formatDate(e.start),
-    'לקוח':         e.client,
-    'שעת התחלה':   formatTime(e.start),
-    'שעת סיום':    formatTime(e.end),
+    'תאריך':           formatDate(e.start),
+    'לקוח':            e.client,
+    'פעילות':          e.activity || '',
+    'שעת התחלה':      formatTime(e.start),
+    'שעת סיום':       formatTime(e.end),
     'משך (שע:דק:שנ)': formatDurationFull(e.durationMs)
   }));
 
-  const ws = XLSX.utils.json_to_sheet(rows, { header: ['תאריך','לקוח','שעת התחלה','שעת סיום','משך (שע:דק:שנ)'] });
+  const ws = XLSX.utils.json_to_sheet(rows, { header: ['תאריך','לקוח','פעילות','שעת התחלה','שעת סיום','משך (שע:דק:שנ)'] });
 
   // Column widths
-  ws['!cols'] = [{ wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
+  ws['!cols'] = [{ wch: 14 }, { wch: 18 }, { wch: 30 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'דוח זמן');
