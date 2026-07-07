@@ -35,7 +35,7 @@ allClients.forEach((c, i) => { clientColor[c] = BADGE_COLORS[i % BADGE_COLORS.le
 // ═══════════════════════════════════════
 function formatTime(iso) {
   const d = new Date(iso);
-  return d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
 function formatDate(iso) {

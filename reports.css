@@ -258,6 +258,9 @@ body { padding: 24px; display: flex; flex-direction: column; gap: 18px; align-it
 }
 .btn-cancel-manual:hover { border-color: #999; color: #555; }
 
+/* Force 24h on time inputs */
+input[type="time"]::-webkit-datetime-edit-ampm-field { display: none; }
+
 /* ---- TABLE ---- */
 .table-wrap {
   overflow: auto;
