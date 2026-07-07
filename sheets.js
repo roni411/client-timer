@@ -62,14 +62,7 @@ const Sheets = {
 
   // ── Internal fetch ────────────────────
   async _fetch(url, opts = {}) {
-    // Auto-refresh token if close to expiry
-    if (_tokenExpiry - Date.now() < 30000 && _tokenClient) {
-      await new Promise(res => {
-        const orig = _tokenClient.callback;
-        _tokenClient.callback = (r) => { orig(r); res(); };
-        _tokenClient.requestAccessToken({ prompt: '' });
-      });
-    }
+    if (!_token) throw new Error('Not authenticated');
 
     const resp = await fetch(url, {
       ...opts,

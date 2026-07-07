@@ -365,7 +365,7 @@ function onSignedIn() {
   signinOverlay.style.display = 'none';
   Promise.all([Sheets.readClients(), Sheets.readEntries()])
     .then(([clients, entries]) => {
-      allClients = clients;
+      allClients = clients.length > 0 ? clients : load('ct_clients', []);
       allEntries = entries;
       allClients.forEach((c, i) => { clientColor[c] = BADGE_COLORS[i % BADGE_COLORS.length]; });
       selectedClients = new Set(allClients);
@@ -375,6 +375,9 @@ function onSignedIn() {
     })
     .catch(err => {
       console.error('Failed to load data:', err);
+      allClients = load('ct_clients', []);
+      allClients.forEach((c, i) => { clientColor[c] = BADGE_COLORS[i % BADGE_COLORS.length]; });
+      selectedClients = new Set(allClients);
       populateManualClients();
       renderClientPills();
       applyPreset('month');

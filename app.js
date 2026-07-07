@@ -398,6 +398,7 @@ function onSignedIn() {
       Storage.set(KEYS.CLIENTS, clients);
     } else if (clients.length > 0) {
       // Migrate existing localStorage clients to Sheets
+      console.log('Migrating clients to Sheets:', clients, 'signed in:', Sheets.isSignedIn());
       Sheets.saveClients(clients).catch(err => console.error('Failed to migrate clients:', err));
     }
 
