@@ -254,6 +254,7 @@ function saveEdit() {
   // filter empty names, trim
   clients = editClients.map(c => c.trim()).filter(Boolean);
   Storage.set(KEYS.CLIENTS, clients);
+  Sheets.saveClients(clients).catch(err => console.error('Failed to save clients:', err));
   refreshClientSelect();
   showPanel('idle');
 }
@@ -391,23 +392,37 @@ const signinOverlay = document.getElementById('signin-overlay');
 function onSignedIn() {
   signinOverlay.style.display = 'none';
 
-  refreshClientSelect();
+  Sheets.readClients().then(sheetClients => {
+    if (sheetClients.length > 0) {
+      clients = sheetClients;
+      Storage.set(KEYS.CLIENTS, clients);
+    } else if (clients.length > 0) {
+      // Migrate existing localStorage clients to Sheets
+      Sheets.saveClients(clients).catch(err => console.error('Failed to migrate clients:', err));
+    }
 
-  if (session) {
-    runningClientName.textContent = session.client;
-    activityInputRunning.value = session.activity || '';
-    activityInput.value = session.activity || '';
-    showPanel('running');
-    timerInterval = setInterval(tickTimer, 1000);
-    tickTimer();
-    requestNotificationPermission();
-  } else {
-    showPanel('idle');
-  }
+    refreshClientSelect();
 
-  if ('Notification' in window && Notification.permission === 'default' && !session) {
-    notifBar.style.display = 'flex';
-  }
+    if (session) {
+      runningClientName.textContent = session.client;
+      activityInputRunning.value = session.activity || '';
+      activityInput.value = session.activity || '';
+      showPanel('running');
+      timerInterval = setInterval(tickTimer, 1000);
+      tickTimer();
+      requestNotificationPermission();
+    } else {
+      showPanel('idle');
+    }
+
+    if ('Notification' in window && Notification.permission === 'default' && !session) {
+      notifBar.style.display = 'flex';
+    }
+  }).catch(err => {
+    console.error('Failed to load clients:', err);
+    refreshClientSelect();
+    showPanel(session ? 'running' : 'idle');
+  });
 }
 
 function init() {

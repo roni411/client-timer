@@ -8,13 +8,13 @@ function load(key, fallback) {
   catch { return fallback; }
 }
 
-const allClients = load('ct_clients', []);
-let allEntries   = []; // loaded from Sheets
+let allClients = [];
+let allEntries = []; // loaded from Sheets
 
 // ═══════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════
-let selectedClients = new Set(allClients);
+let selectedClients = new Set();
 let dateFrom = null;
 let dateTo   = null;
 
@@ -28,7 +28,6 @@ const BADGE_COLORS = [
   { bg: '#fce7f3', color: '#9d174d' },
 ];
 const clientColor = {};
-allClients.forEach((c, i) => { clientColor[c] = BADGE_COLORS[i % BADGE_COLORS.length]; });
 
 // ═══════════════════════════════════════
 //  UTILS
@@ -364,15 +363,20 @@ document.getElementById('btn-signin').addEventListener('click', () => {
 
 function onSignedIn() {
   signinOverlay.style.display = 'none';
-  populateManualClients();
-  renderClientPills();
-  Sheets.readEntries()
-    .then(rows => {
-      allEntries = rows;
+  Promise.all([Sheets.readClients(), Sheets.readEntries()])
+    .then(([clients, entries]) => {
+      allClients = clients;
+      allEntries = entries;
+      allClients.forEach((c, i) => { clientColor[c] = BADGE_COLORS[i % BADGE_COLORS.length]; });
+      selectedClients = new Set(allClients);
+      populateManualClients();
+      renderClientPills();
       applyPreset('month');
     })
     .catch(err => {
-      console.error('Failed to load entries:', err);
+      console.error('Failed to load data:', err);
+      populateManualClients();
+      renderClientPills();
       applyPreset('month');
     });
 }
