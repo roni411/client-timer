@@ -275,7 +275,82 @@ document.getElementById('date-to').addEventListener('change', e => {
 });
 
 // ═══════════════════════════════════════
+//  MANUAL ENTRY
+// ═══════════════════════════════════════
+const manualCard    = document.getElementById('manual-entry-card');
+const manualClient  = document.getElementById('manual-client');
+const manualDate    = document.getElementById('manual-date');
+const manualStart   = document.getElementById('manual-start');
+const manualEnd     = document.getElementById('manual-end');
+const manualActivity= document.getElementById('manual-activity');
+
+// Populate client dropdown
+function populateManualClients() {
+  manualClient.innerHTML = '';
+  allClients.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = c;
+    manualClient.appendChild(opt);
+  });
+}
+
+document.getElementById('btn-add-manual').addEventListener('click', () => {
+  manualCard.style.display = 'block';
+  // Default to today
+  manualDate.value = new Date().toISOString().slice(0, 10);
+  manualStart.value = '';
+  manualEnd.value   = '';
+  manualActivity.value = '';
+  manualCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+
+document.getElementById('btn-cancel-manual').addEventListener('click', () => {
+  manualCard.style.display = 'none';
+});
+
+document.getElementById('btn-save-manual').addEventListener('click', () => {
+  const client   = manualClient.value;
+  const date     = manualDate.value;
+  const startVal = manualStart.value;
+  const endVal   = manualEnd.value;
+  const activity = manualActivity.value.trim();
+
+  if (!client || !date || !startVal || !endVal) {
+    alert('נא למלא לקוח, תאריך, שעת התחלה ושעת סיום');
+    return;
+  }
+
+  const startISO = new Date(`${date}T${startVal}`).toISOString();
+  const endISO   = new Date(`${date}T${endVal}`).toISOString();
+  const durationMs = new Date(endISO) - new Date(startISO);
+
+  if (durationMs <= 0) {
+    alert('שעת הסיום חייבת להיות אחרי שעת ההתחלה');
+    return;
+  }
+
+  const entry = {
+    id:         Date.now(),
+    client,
+    start:      startISO,
+    end:        endISO,
+    durationMs,
+    activity,
+    manual:     true
+  };
+
+  allEntries.push(entry);
+  allEntries.sort((a, b) => new Date(b.start) - new Date(a.start));
+  localStorage.setItem('ct_entries', JSON.stringify(allEntries));
+
+  manualCard.style.display = 'none';
+  render();
+});
+
+// ═══════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════
+populateManualClients();
 renderClientPills();
 applyPreset('month');

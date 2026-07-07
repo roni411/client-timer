@@ -16,7 +16,10 @@
       <a href="index.html" class="back-link">← חזרה לטיימר</a>
       <div class="topbar-title">📊 דוחות זמן</div>
     </div>
-    <button class="btn-excel" id="btn-export">📗 ייצוא ל-Excel</button>
+    <div style="display:flex;gap:10px">
+      <button class="btn-add-manual" id="btn-add-manual">+ רשומה ידנית</button>
+      <button class="btn-excel" id="btn-export">📗 ייצוא ל-Excel</button>
+    </div>
   </div>
 
   <!-- FILTERS -->
@@ -48,6 +51,37 @@
 
   <!-- SUMMARY CHIPS -->
   <div class="chips-row" id="chips-row"></div>
+
+  <!-- MANUAL ENTRY -->
+  <div class="card" id="manual-entry-card" style="display:none">
+    <div class="manual-entry-title">הוספת רשומה ידנית</div>
+    <div class="manual-entry-grid">
+      <div class="manual-field">
+        <label>לקוח</label>
+        <select id="manual-client" class="date-input" style="width:100%"></select>
+      </div>
+      <div class="manual-field">
+        <label>תאריך</label>
+        <input type="date" id="manual-date" class="date-input" style="width:100%" />
+      </div>
+      <div class="manual-field">
+        <label>שעת התחלה</label>
+        <input type="time" id="manual-start" class="date-input" style="width:100%" />
+      </div>
+      <div class="manual-field">
+        <label>שעת סיום</label>
+        <input type="time" id="manual-end" class="date-input" style="width:100%" />
+      </div>
+      <div class="manual-field manual-field-wide">
+        <label>פעילות</label>
+        <input type="text" id="manual-activity" class="date-input" style="width:100%" placeholder="תיאור הפעילות..." />
+      </div>
+    </div>
+    <div class="manual-entry-actions">
+      <button class="btn-save-manual" id="btn-save-manual">✓ שמור רשומה</button>
+      <button class="btn-cancel-manual" id="btn-cancel-manual">ביטול</button>
+    </div>
+  </div>
 
   <!-- TABLE -->
   <div class="table-wrap">
