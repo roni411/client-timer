@@ -164,9 +164,9 @@ function renderTable(entries) {
       <td>${formatDate(e.start)}</td>
       <td><span class="badge" style="background:${col.bg};color:${col.color}">${e.client}</span></td>
       <td style="color:#555;max-width:180px;overflow:hidden;text-overflow:ellipsis">${e.activity || '—'}</td>
-      <td>${formatTime(e.start)}</td>
-      <td>${formatTime(e.end)}</td>
-      <td class="duration-cell">${formatDurationFull(e.durationMs)}</td>
+      <td>${e.end ? formatTime(e.start) : '—'}</td>
+      <td>${e.end ? formatTime(e.end)   : '—'}</td>
+      <td class="duration-cell">${e.end ? formatDurationFull(e.durationMs) : '—'}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -315,18 +315,24 @@ document.getElementById('btn-save-manual').addEventListener('click', () => {
   const endVal   = manualEnd.value;
   const activity = manualActivity.value.trim();
 
-  if (!client || !date || !startVal || !endVal) {
-    alert('נא למלא לקוח, תאריך, שעת התחלה ושעת סיום');
+  if (!client || !date) {
+    alert('נא למלא לקוח ותאריך');
     return;
   }
 
-  const startISO = new Date(`${date}T${startVal}`).toISOString();
-  const endISO   = new Date(`${date}T${endVal}`).toISOString();
-  const durationMs = new Date(endISO) - new Date(startISO);
-
-  if (durationMs <= 0) {
-    alert('שעת הסיום חייבת להיות אחרי שעת ההתחלה');
-    return;
+  let startISO, endISO, durationMs;
+  if (startVal && endVal) {
+    startISO   = new Date(`${date}T${startVal}`).toISOString();
+    endISO     = new Date(`${date}T${endVal}`).toISOString();
+    durationMs = new Date(endISO) - new Date(startISO);
+    if (durationMs <= 0) {
+      alert('שעת הסיום חייבת להיות אחרי שעת ההתחלה');
+      return;
+    }
+  } else {
+    startISO   = new Date(`${date}T00:00:00`).toISOString();
+    endISO     = '';
+    durationMs = 0;
   }
 
   const entry = {
