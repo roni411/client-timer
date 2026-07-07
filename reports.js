@@ -14,9 +14,10 @@ let allEntries = []; // loaded from Sheets
 // ═══════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════
-let selectedClients = new Set();
-let dateFrom = null;
-let dateTo   = null;
+let selectedClients  = new Set();
+let dateFrom         = null;
+let dateTo           = null;
+let editingEntryId   = null;
 
 // Badge colours (cycles through palette)
 const BADGE_COLORS = [
@@ -151,7 +152,7 @@ function renderTable(entries) {
   tbody.innerHTML = '';
 
   if (entries.length === 0) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">אין רשומות בטווח הנבחר</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">אין רשומות בטווח הנבחר</td></tr>';
     return;
   }
 
@@ -167,7 +168,13 @@ function renderTable(entries) {
       <td>${e.end ? formatTime(e.start) : '—'}</td>
       <td>${e.end ? formatTime(e.end)   : '—'}</td>
       <td class="duration-cell">${e.end ? formatDurationFull(e.durationMs) : '—'}</td>
+      <td class="actions-cell">
+        <button class="row-btn edit-btn" title="עריכה">✏</button>
+        <button class="row-btn delete-btn" title="מחיקה">🗑</button>
+      </td>
     `;
+    tr.querySelector('.edit-btn').addEventListener('click', () => openEditEntry(e));
+    tr.querySelector('.delete-btn').addEventListener('click', () => deleteEntry(e.id));
     tbody.appendChild(tr);
   });
 
@@ -175,8 +182,9 @@ function renderTable(entries) {
   const totals = document.createElement('tr');
   totals.className = 'totals-row';
   totals.innerHTML = `
-    <td colspan="4" style="color:#9ca3af;font-size:11px;text-transform:uppercase;letter-spacing:0.5px">סה"כ</td>
+    <td colspan="5" style="color:#9ca3af;font-size:11px;text-transform:uppercase;letter-spacing:0.5px">סה"כ</td>
     <td class="duration-cell">${formatDurationFull(totalMs)}</td>
+    <td></td>
   `;
   tbody.appendChild(totals);
 }
@@ -274,6 +282,29 @@ document.getElementById('date-to').addEventListener('change', e => {
 });
 
 // ═══════════════════════════════════════
+//  ROW ACTIONS (EDIT / DELETE)
+// ═══════════════════════════════════════
+function deleteEntry(id) {
+  if (!confirm('למחוק את הרשומה?')) return;
+  Sheets.deleteEntry(id)
+    .then(() => Sheets.readEntries())
+    .then(rows => { allEntries = rows; render(); })
+    .catch(err => { console.error('Failed to delete entry:', err); alert('שגיאה במחיקת הרשומה'); });
+}
+
+function openEditEntry(entry) {
+  editingEntryId = entry.id;
+  document.querySelector('.manual-entry-title').textContent = 'עריכת רשומה';
+  manualClient.value   = entry.client;
+  manualDate.value     = entry.start.slice(0, 10);
+  manualStart.value    = entry.end ? formatTime(entry.start) : '';
+  manualEnd.value      = entry.end ? formatTime(entry.end)   : '';
+  manualActivity.value = entry.activity || '';
+  manualCard.style.display = 'block';
+  manualCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ═══════════════════════════════════════
 //  MANUAL ENTRY
 // ═══════════════════════════════════════
 const manualCard    = document.getElementById('manual-entry-card');
@@ -295,17 +326,20 @@ function populateManualClients() {
 }
 
 document.getElementById('btn-add-manual').addEventListener('click', () => {
-  manualCard.style.display = 'block';
-  // Default to today
-  manualDate.value = new Date().toISOString().slice(0, 10);
-  manualStart.value = '';
-  manualEnd.value   = '';
+  editingEntryId = null;
+  document.querySelector('.manual-entry-title').textContent = 'הוספת רשומה ידנית';
+  manualDate.value     = new Date().toISOString().slice(0, 10);
+  manualStart.value    = '';
+  manualEnd.value      = '';
   manualActivity.value = '';
+  manualCard.style.display = 'block';
   manualCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 });
 
 document.getElementById('btn-cancel-manual').addEventListener('click', () => {
   manualCard.style.display = 'none';
+  editingEntryId = null;
+  document.querySelector('.manual-entry-title').textContent = 'הוספת רשומה ידנית';
 });
 
 document.getElementById('btn-save-manual').addEventListener('click', () => {
@@ -345,10 +379,16 @@ document.getElementById('btn-save-manual').addEventListener('click', () => {
     manual:     true
   };
 
-  Sheets.appendEntry(entry)
+  const saveAction = editingEntryId
+    ? Sheets.deleteEntry(editingEntryId).then(() => Sheets.appendEntry(entry))
+    : Sheets.appendEntry(entry);
+
+  saveAction
     .then(() => Sheets.readEntries())
     .then(rows => {
       allEntries = rows;
+      editingEntryId = null;
+      document.querySelector('.manual-entry-title').textContent = 'הוספת רשומה ידנית';
       manualCard.style.display = 'none';
       render();
     })

@@ -318,3 +318,21 @@ tbody td { padding: 10px 16px; color: #333; white-space: nowrap; }
   padding: 32px;
   font-size: 14px;
 }
+
+/* ---- ROW ACTION BUTTONS ---- */
+.actions-cell { white-space: nowrap; padding: 6px 10px !important; }
+
+.row-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 3px 5px;
+  border-radius: 5px;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+tbody tr:hover .row-btn { opacity: 0.5; }
+.row-btn:hover { opacity: 1 !important; }
+.edit-btn:hover   { background: #ede9fe; }
+.delete-btn:hover { background: #fee2e2; }
