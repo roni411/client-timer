@@ -452,3 +452,5 @@ function init() {
 document.getElementById('btn-signin').addEventListener('click', () => {
   Sheets.signIn();
 });
+
+init();
