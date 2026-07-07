@@ -148,34 +148,23 @@ const Sheets = {
     );
   },
 
-  // ── Ensure "Clients" sheet tab exists ─
-  async _ensureClientsSheet() {
-    const meta = await this._fetch(API_BASE + '?fields=sheets.properties.title');
-    const exists = meta.sheets?.some(s => s.properties.title === 'Clients');
-    if (!exists) {
-      await this._fetch(BATCH_URL, {
-        method: 'POST',
-        body:   JSON.stringify({ requests: [{ addSheet: { properties: { title: 'Clients' } } }] })
-      });
+  // ── Read clients (stored in Sheet1!I1) ─
+  async readClients() {
+    try {
+      const data = await this._fetch(`${API_BASE}/values/${SHEETS_CONFIG.SHEET_NAME}!I1`);
+      const cell = (data.values || [['']])[0][0] || '';
+      return cell ? cell.split('\n').filter(Boolean) : [];
+    } catch (e) {
+      console.error('readClients failed:', e);
+      return [];
     }
   },
 
-  // ── Read clients ──────────────────────
-  async readClients() {
-    try {
-      const data = await this._fetch(`${API_BASE}/values/Clients!A1:A`);
-      return (data.values || []).flat().filter(Boolean);
-    } catch { return []; }
-  },
-
-  // ── Save clients ──────────────────────
+  // ── Save clients (stored in Sheet1!I1) ─
   async saveClients(names) {
-    await this._ensureClientsSheet();
-    await this._fetch(`${API_BASE}/values/Clients!A1:A:clear`, { method: 'POST', body: '{}' });
-    if (names.length === 0) return;
     await this._fetch(
-      `${API_BASE}/values/Clients!A1?valueInputOption=RAW`,
-      { method: 'PUT', body: JSON.stringify({ values: names.map(n => [n]) }) }
+      `${API_BASE}/values/${SHEETS_CONFIG.SHEET_NAME}!I1?valueInputOption=RAW`,
+      { method: 'PUT', body: JSON.stringify({ values: [[names.join('\n')]] }) }
     );
   },
 
