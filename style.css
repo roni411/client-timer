@@ -94,6 +94,48 @@ html, body {
 }
 .client-select:focus { border-color: var(--purple); }
 
+/* ---- SIGN-IN OVERLAY ---- */
+#signin-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.signin-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.signin-icon { font-size: 36px; }
+.signin-title { font-size: 18px; font-weight: 700; color: var(--text); }
+.signin-sub { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+
+.signin-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: box-shadow 0.15s;
+}
+.signin-btn:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.14); }
+
 /* ---- ACTIVITY INPUT ---- */
 .activity-input {
   width: 100%;

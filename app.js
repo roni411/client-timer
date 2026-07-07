@@ -120,7 +120,8 @@ function syncActivity() {
 }
 
 function startTimer(clientName) {
-  session = { client: clientName, startTime: new Date().toISOString() };
+  const activity = activityInput.value.trim();
+  session = { client: clientName, startTime: new Date().toISOString(), activity };
   Storage.set(KEYS.SESSION, session);
   lastNotifiedMin = 0;
 
@@ -140,22 +141,21 @@ function stopTimer() {
   clearInterval(timerInterval);
   timerInterval = null;
 
-  const end = new Date().toISOString();
+  const end        = new Date().toISOString();
   const durationMs = elapsedMs();
-
-  const activity = activityInputRunning.value.trim();
+  const activity   = activityInputRunning.value.trim();
 
   const entry = {
     id:         Date.now(),
     client:     session.client,
     start:      session.startTime,
-    end:        end,
-    durationMs: durationMs,
-    activity:   activity
+    end,
+    durationMs,
+    activity
   };
 
-  entries.push(entry);
-  Storage.set(KEYS.ENTRIES, entries);
+  // Save to Google Sheets
+  Sheets.appendEntry(entry).catch(err => console.error('Failed to save entry:', err));
 
   session = null;
   Storage.set(KEYS.SESSION, null);
@@ -386,17 +386,17 @@ document.getElementById('btn-allow-notif').addEventListener('click', () => {
 // ═══════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════
-function init() {
-  // Register service worker
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
-  }
+const signinOverlay = document.getElementById('signin-overlay');
+
+function onSignedIn() {
+  signinOverlay.style.display = 'none';
 
   refreshClientSelect();
 
-  // Restore running session after page refresh
   if (session) {
     runningClientName.textContent = session.client;
+    activityInputRunning.value = session.activity || '';
+    activityInput.value = session.activity || '';
     showPanel('running');
     timerInterval = setInterval(tickTimer, 1000);
     tickTimer();
@@ -405,10 +405,34 @@ function init() {
     showPanel('idle');
   }
 
-  // Show notification bar if not yet decided
   if ('Notification' in window && Notification.permission === 'default' && !session) {
     notifBar.style.display = 'flex';
   }
 }
 
-init();
+function init() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+
+  signinOverlay.style.display = 'flex';
+
+  window.addEventListener('load', () => {
+    if (typeof google === 'undefined') {
+      // GIS not loaded yet, wait
+      setTimeout(() => Sheets.init(ready => {
+        if (ready) onSignedIn();
+        else signinOverlay.style.display = 'flex';
+      }), 1000);
+    } else {
+      Sheets.init(ready => {
+        if (ready) onSignedIn();
+        else signinOverlay.style.display = 'flex';
+      });
+    }
+  });
+}
+
+document.getElementById('btn-signin').addEventListener('click', () => {
+  Sheets.signIn();
+});

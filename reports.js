@@ -9,7 +9,7 @@ function load(key, fallback) {
 }
 
 const allClients = load('ct_clients', []);
-const allEntries = load('ct_entries', []);
+let allEntries   = []; // loaded from Sheets
 
 // ═══════════════════════════════════════
 //  STATE
@@ -340,17 +340,54 @@ document.getElementById('btn-save-manual').addEventListener('click', () => {
     manual:     true
   };
 
-  allEntries.push(entry);
-  allEntries.sort((a, b) => new Date(b.start) - new Date(a.start));
-  localStorage.setItem('ct_entries', JSON.stringify(allEntries));
-
-  manualCard.style.display = 'none';
-  render();
+  Sheets.appendEntry(entry)
+    .then(() => Sheets.readEntries())
+    .then(rows => {
+      allEntries = rows;
+      manualCard.style.display = 'none';
+      render();
+    })
+    .catch(err => {
+      console.error('Failed to save entry:', err);
+      alert('שגיאה בשמירת הרשומה');
+    });
 });
 
 // ═══════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════
-populateManualClients();
-renderClientPills();
-applyPreset('month');
+const signinOverlay = document.getElementById('signin-overlay');
+
+document.getElementById('btn-signin').addEventListener('click', () => {
+  Sheets.signIn();
+});
+
+function onSignedIn() {
+  signinOverlay.style.display = 'none';
+  populateManualClients();
+  renderClientPills();
+  Sheets.readEntries()
+    .then(rows => {
+      allEntries = rows;
+      applyPreset('month');
+    })
+    .catch(err => {
+      console.error('Failed to load entries:', err);
+      applyPreset('month');
+    });
+}
+
+window.addEventListener('load', () => {
+  signinOverlay.style.display = 'flex';
+  if (typeof google === 'undefined') {
+    setTimeout(() => Sheets.init(ready => {
+      if (ready) onSignedIn();
+      else signinOverlay.style.display = 'flex';
+    }), 1000);
+  } else {
+    Sheets.init(ready => {
+      if (ready) onSignedIn();
+      else signinOverlay.style.display = 'flex';
+    });
+  }
+});
