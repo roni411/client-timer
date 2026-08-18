@@ -230,22 +230,33 @@ document.getElementById('btn-export').addEventListener('click', () => {
   const filtered = getFiltered();
   if (filtered.length === 0) { alert('אין נתונים לייצוא בטווח הנבחר'); return; }
 
-  const rows = filtered.map(e => ({
-    'תאריך':           formatDate(e.start),
-    'לקוח':            e.client,
-    'פעילות':          e.activity || '',
-    'שעת התחלה':      formatTime(e.start),
-    'שעת סיום':       formatTime(e.end),
-    'משך (שע:דק:שנ)': formatDurationFull(e.durationMs)
+  // ── Sheet 1: Summary per client ──
+  const byClient = {};
+  filtered.forEach(e => { byClient[e.client] = (byClient[e.client] || 0) + e.durationMs; });
+  const summaryRows = Object.entries(byClient).map(([client, ms]) => ({
+    'לקוח': client, 'סה"כ שעות': formatDuration(ms)
   }));
+  const wsSummary = XLSX.utils.json_to_sheet(summaryRows, { header: ['לקוח', 'סה"כ שעות'] });
+  wsSummary['!cols'] = [{ wch: 22 }, { wch: 14 }];
 
-  const ws = XLSX.utils.json_to_sheet(rows, { header: ['תאריך','לקוח','פעילות','שעת התחלה','שעת סיום','משך (שע:דק:שנ)'] });
-
-  // Column widths
-  ws['!cols'] = [{ wch: 14 }, { wch: 18 }, { wch: 30 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
+  // ── Sheet 2: Detail sorted by client then date ──
+  const sorted = [...filtered].sort((a, b) =>
+    a.client.localeCompare(b.client) || new Date(a.start) - new Date(b.start)
+  );
+  const detailRows = sorted.map(e => ({
+    'לקוח':            e.client,
+    'תאריך':           formatDate(e.start),
+    'פעילות':          e.activity || '',
+    'שעת התחלה':      e.end ? formatTime(e.start) : '—',
+    'שעת סיום':       e.end ? formatTime(e.end)   : '—',
+    'משך (שע:דק:שנ)': e.end ? formatDurationFull(e.durationMs) : '—'
+  }));
+  const wsDetail = XLSX.utils.json_to_sheet(detailRows, { header: ['לקוח','תאריך','פעילות','שעת התחלה','שעת סיום','משך (שע:דק:שנ)'] });
+  wsDetail['!cols'] = [{ wch: 18 }, { wch: 14 }, { wch: 30 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
 
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'דוח זמן');
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'סיכום');
+  XLSX.utils.book_append_sheet(wb, wsDetail,  'פירוט');
 
   const today = new Date().toLocaleDateString('he-IL').replace(/\//g,'-');
   XLSX.writeFile(wb, `client-timer-${today}.xlsx`);

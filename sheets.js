@@ -19,22 +19,21 @@ const BATCH_URL  = `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFI
 let _token       = null;
 let _tokenExpiry = 0;
 let _tokenClient = null;
+let _signedIn    = false;
 let _sheetGid    = null; // numeric sheet ID for batchUpdate
+
+function _scheduleRefresh() {
+  const refreshIn = Math.max(_tokenExpiry - Date.now() - 60000, 0);
+  setTimeout(() => {
+    if (_tokenClient) _tokenClient.requestAccessToken({ prompt: '' });
+  }, refreshIn);
+}
 
 const Sheets = {
 
   // ── Init ──────────────────────────────
   init(onReady) {
-    // Restore token from session
-    const t = sessionStorage.getItem('ct_gtoken');
-    const e = parseInt(sessionStorage.getItem('ct_gexpiry') || '0');
-    if (t && e > Date.now() + 30000) {
-      _token = t;
-      _tokenExpiry = e;
-      if (onReady) onReady(true);
-      return;
-    }
-
+    // Always create token client so silent refresh works
     _tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: SHEETS_CONFIG.CLIENT_ID,
       scope:     SHEETS_CONFIG.SCOPE,
@@ -44,9 +43,25 @@ const Sheets = {
         _tokenExpiry = Date.now() + (resp.expires_in - 60) * 1000;
         sessionStorage.setItem('ct_gtoken',  _token);
         sessionStorage.setItem('ct_gexpiry', String(_tokenExpiry));
-        if (onReady) onReady(true);
+        _scheduleRefresh();
+        if (!_signedIn) {
+          _signedIn = true;
+          if (onReady) onReady(true);
+        }
       }
     });
+
+    // Restore token from session if still valid
+    const t = sessionStorage.getItem('ct_gtoken');
+    const e = parseInt(sessionStorage.getItem('ct_gexpiry') || '0');
+    if (t && e > Date.now() + 30000) {
+      _token       = t;
+      _tokenExpiry = e;
+      _signedIn    = true;
+      _scheduleRefresh();
+      if (onReady) onReady(true);
+      return;
+    }
 
     if (onReady) onReady(false); // not yet signed in
   },

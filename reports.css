@@ -261,6 +261,15 @@ body { padding: 24px; display: flex; flex-direction: column; gap: 18px; align-it
 /* Force 24h on time inputs */
 input[type="time"]::-webkit-datetime-edit-ampm-field { display: none; }
 
+/* Activity textarea */
+.activity-textarea {
+  width: 100%;
+  height: 68px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
 /* ---- TABLE ---- */
 .table-wrap {
   overflow: auto;
