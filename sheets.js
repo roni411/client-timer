@@ -16,24 +16,36 @@ const BATCH_URL  = `https://sheets.googleapis.com/v4/spreadsheets/${SHEETS_CONFI
 // ═══════════════════════════════════════
 //  AUTH STATE
 // ═══════════════════════════════════════
-let _token       = null;
-let _tokenExpiry = 0;
-let _tokenClient = null;
-let _signedIn    = false;
-let _sheetGid    = null; // numeric sheet ID for batchUpdate
+let _token           = null;
+let _tokenExpiry     = 0;
+let _tokenClient     = null;
+let _signedIn        = false;
+let _sheetGid        = null; // numeric sheet ID for batchUpdate
+let _refreshInterval = null;
 
-function _scheduleRefresh() {
-  const refreshIn = Math.max(_tokenExpiry - Date.now() - 60000, 0);
-  setTimeout(() => {
-    if (_tokenClient) _tokenClient.requestAccessToken({ prompt: '' });
-  }, refreshIn);
+// Called when token is about to expire or just expired — attempts silent renewal
+function _tryRefreshIfNeeded() {
+  if (_tokenClient && _token && _tokenExpiry - Date.now() < 5 * 60 * 1000) {
+    _tokenClient.requestAccessToken({ prompt: '' });
+  }
 }
+
+// Runs every 2 minutes; also fires immediately when the page becomes visible
+function _startRefreshLoop() {
+  if (_refreshInterval) clearInterval(_refreshInterval);
+  _refreshInterval = setInterval(_tryRefreshIfNeeded, 2 * 60 * 1000);
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') _tryRefreshIfNeeded();
+});
 
 const Sheets = {
 
+  onReauthNeeded: null, // set from outside — called when session expires mid-use
+
   // ── Init ──────────────────────────────
   init(onReady) {
-    // Always create token client so silent refresh works
     _tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: SHEETS_CONFIG.CLIENT_ID,
       scope:     SHEETS_CONFIG.SCOPE,
@@ -43,7 +55,7 @@ const Sheets = {
         _tokenExpiry = Date.now() + (resp.expires_in - 60) * 1000;
         sessionStorage.setItem('ct_gtoken',  _token);
         sessionStorage.setItem('ct_gexpiry', String(_tokenExpiry));
-        _scheduleRefresh();
+        _startRefreshLoop();
         if (!_signedIn) {
           _signedIn = true;
           if (onReady) onReady(true);
@@ -58,7 +70,7 @@ const Sheets = {
       _token       = t;
       _tokenExpiry = e;
       _signedIn    = true;
-      _scheduleRefresh();
+      _startRefreshLoop();
       if (onReady) onReady(true);
       return;
     }
@@ -68,6 +80,7 @@ const Sheets = {
 
   signIn() {
     if (!_tokenClient) return;
+    _signedIn = false;
     _tokenClient.requestAccessToken({ prompt: 'select_account' });
   },
 
@@ -87,6 +100,18 @@ const Sheets = {
         ...(opts.headers || {})
       }
     });
+
+    if (resp.status === 401) {
+      // Token expired — clear state and ask user to sign in again
+      _token       = null;
+      _tokenExpiry = 0;
+      _signedIn    = false;
+      sessionStorage.removeItem('ct_gtoken');
+      sessionStorage.removeItem('ct_gexpiry');
+      if (_refreshInterval) { clearInterval(_refreshInterval); _refreshInterval = null; }
+      if (this.onReauthNeeded) this.onReauthNeeded();
+      throw new Error('פג תוקף החיבור — נא להתחבר מחדש');
+    }
 
     if (!resp.ok) {
       const err = await resp.text();

@@ -433,6 +433,10 @@ function init() {
 
   signinOverlay.style.display = 'flex';
 
+  Sheets.onReauthNeeded = () => {
+    signinOverlay.style.display = 'flex';
+  };
+
   window.addEventListener('load', () => {
     if (typeof google === 'undefined') {
       // GIS not loaded yet, wait

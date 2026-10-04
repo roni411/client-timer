@@ -230,33 +230,42 @@ document.getElementById('btn-export').addEventListener('click', () => {
   const filtered = getFiltered();
   if (filtered.length === 0) { alert('אין נתונים לייצוא בטווח הנבחר'); return; }
 
-  // ── Sheet 1: Summary per client ──
-  const byClient = {};
-  filtered.forEach(e => { byClient[e.client] = (byClient[e.client] || 0) + e.durationMs; });
-  const summaryRows = Object.entries(byClient).map(([client, ms]) => ({
-    'לקוח': client, 'סה"כ שעות': formatDuration(ms)
-  }));
-  const wsSummary = XLSX.utils.json_to_sheet(summaryRows, { header: ['לקוח', 'סה"כ שעות'] });
-  wsSummary['!cols'] = [{ wch: 22 }, { wch: 14 }];
+  function timeToExcel(iso) {
+    const d = new Date(iso);
+    return (d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds()) / 86400;
+  }
+  function durationToExcel(ms) { return ms / 86400000; }
 
-  // ── Sheet 2: Detail sorted by client then date ──
-  const sorted = [...filtered].sort((a, b) =>
-    a.client.localeCompare(b.client) || new Date(a.start) - new Date(b.start)
-  );
-  const detailRows = sorted.map(e => ({
-    'לקוח':            e.client,
-    'תאריך':           formatDate(e.start),
-    'פעילות':          e.activity || '',
-    'שעת התחלה':      e.end ? formatTime(e.start) : '—',
-    'שעת סיום':       e.end ? formatTime(e.end)   : '—',
-    'משך (שע:דק:שנ)': e.end ? formatDurationFull(e.durationMs) : '—'
-  }));
-  const wsDetail = XLSX.utils.json_to_sheet(detailRows, { header: ['לקוח','תאריך','פעילות','שעת התחלה','שעת סיום','משך (שע:דק:שנ)'] });
-  wsDetail['!cols'] = [{ wch: 18 }, { wch: 14 }, { wch: 30 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
+  // ── Detail sheet sorted oldest to newest ──
+  const sorted = [...filtered].sort((a, b) => new Date(a.start) - new Date(b.start));
+  const aoa = [['Client', 'Date', 'Activity', 'Start Time', 'End Time', 'Duration']];
+  sorted.forEach(e => {
+    aoa.push([
+      e.client,
+      formatDate(e.start),
+      e.activity || '',
+      e.end ? timeToExcel(e.start) : '',
+      e.end ? timeToExcel(e.end)   : '',
+      e.end ? durationToExcel(e.durationMs) : ''
+    ]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  // Format time and duration cells
+  sorted.forEach((e, i) => {
+    if (!e.end) return;
+    const r = i + 1;
+    const startCell = ws[XLSX.utils.encode_cell({ r, c: 3 })];
+    const endCell   = ws[XLSX.utils.encode_cell({ r, c: 4 })];
+    const durCell   = ws[XLSX.utils.encode_cell({ r, c: 5 })];
+    if (startCell) { startCell.t = 'n'; startCell.z = 'hh:mm'; }
+    if (endCell)   { endCell.t   = 'n'; endCell.z   = 'hh:mm'; }
+    if (durCell)   { durCell.t   = 'n'; durCell.z   = '[h]:mm'; }
+  });
+  ws['!cols'] = [{ wch: 18 }, { wch: 14 }, { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
 
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, wsSummary, 'סיכום');
-  XLSX.utils.book_append_sheet(wb, wsDetail,  'פירוט');
+  XLSX.utils.book_append_sheet(wb, ws, 'Details');
 
   const today = new Date().toLocaleDateString('he-IL').replace(/\//g,'-');
   XLSX.writeFile(wb, `client-timer-${today}.xlsx`);
@@ -443,6 +452,11 @@ function onSignedIn() {
 
 window.addEventListener('load', () => {
   signinOverlay.style.display = 'flex';
+
+  Sheets.onReauthNeeded = () => {
+    signinOverlay.style.display = 'flex';
+  };
+
   if (typeof google === 'undefined') {
     setTimeout(() => Sheets.init(ready => {
       if (ready) onSignedIn();
