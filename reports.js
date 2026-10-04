@@ -306,8 +306,8 @@ document.getElementById('date-to').addEventListener('change', e => {
 // ═══════════════════════════════════════
 function deleteEntry(id) {
   if (!confirm('למחוק את הרשומה?')) return;
-  Sheets.deleteEntry(id)
-    .then(() => Sheets.readEntries())
+  FileStore.deleteEntry(id)
+    .then(() => FileStore.readEntries())
     .then(rows => { allEntries = rows; render(); })
     .catch(err => { console.error('Failed to delete entry:', err); alert('שגיאה במחיקת הרשומה'); });
 }
@@ -400,11 +400,11 @@ document.getElementById('btn-save-manual').addEventListener('click', () => {
   };
 
   const saveAction = editingEntryId
-    ? Sheets.deleteEntry(editingEntryId).then(() => Sheets.appendEntry(entry))
-    : Sheets.appendEntry(entry);
+    ? FileStore.deleteEntry(editingEntryId).then(() => FileStore.appendEntry(entry))
+    : FileStore.appendEntry(entry);
 
   saveAction
-    .then(() => Sheets.readEntries())
+    .then(() => FileStore.readEntries())
     .then(rows => {
       allEntries = rows;
       editingEntryId = null;
@@ -421,51 +421,59 @@ document.getElementById('btn-save-manual').addEventListener('click', () => {
 // ═══════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════
-const signinOverlay = document.getElementById('signin-overlay');
+const signinOverlay  = document.getElementById('signin-overlay');
+const overlayIcon    = document.getElementById('overlay-icon');
+const overlaySub     = document.getElementById('overlay-sub');
+const btnPickFile    = document.getElementById('btn-pick-file');
+const btnAllowAccess = document.getElementById('btn-allow-access');
 
-document.getElementById('btn-signin').addEventListener('click', () => {
-  Sheets.signIn();
-});
-
-function onSignedIn() {
+async function onSignedIn() {
   signinOverlay.style.display = 'none';
-  Promise.all([Sheets.readClients(), Sheets.readEntries()])
-    .then(([clients, entries]) => {
-      allClients = clients.length > 0 ? clients : load('ct_clients', []);
-      allEntries = entries;
-      allClients.forEach((c, i) => { clientColor[c] = BADGE_COLORS[i % BADGE_COLORS.length]; });
-      selectedClients = new Set(allClients);
-      populateManualClients();
-      renderClientPills();
-      applyPreset('month');
-    })
-    .catch(err => {
-      console.error('Failed to load data:', err);
-      allClients = load('ct_clients', []);
-      allClients.forEach((c, i) => { clientColor[c] = BADGE_COLORS[i % BADGE_COLORS.length]; });
-      selectedClients = new Set(allClients);
-      populateManualClients();
-      renderClientPills();
-      applyPreset('month');
-    });
+  try {
+    const [clients, entries] = await Promise.all([FileStore.readClients(), FileStore.readEntries()]);
+    allClients = clients.length > 0 ? clients : load('ct_clients', []);
+    allEntries = entries;
+  } catch (err) {
+    console.error('Failed to load data:', err);
+    allClients = load('ct_clients', []);
+    allEntries = [];
+  }
+  allClients.forEach((c, i) => { clientColor[c] = BADGE_COLORS[i % BADGE_COLORS.length]; });
+  selectedClients = new Set(allClients);
+  populateManualClients();
+  renderClientPills();
+  applyPreset('month');
 }
 
-window.addEventListener('load', () => {
+function showOverlay(status) {
   signinOverlay.style.display = 'flex';
-
-  Sheets.onReauthNeeded = () => {
-    signinOverlay.style.display = 'flex';
-  };
-
-  if (typeof google === 'undefined') {
-    setTimeout(() => Sheets.init(ready => {
-      if (ready) onSignedIn();
-      else signinOverlay.style.display = 'flex';
-    }), 1000);
+  if (status === 'need-permission') {
+    overlayIcon.textContent = '🔓';
+    overlaySub.innerHTML = `נדרשת גישה לקובץ:<br><strong>${FileStore.getFilename()}</strong>`;
+    btnPickFile.style.display    = 'none';
+    btnAllowAccess.style.display = '';
   } else {
-    Sheets.init(ready => {
-      if (ready) onSignedIn();
-      else signinOverlay.style.display = 'flex';
-    });
+    overlayIcon.textContent  = '📁';
+    overlaySub.textContent   = 'בחרי קובץ Excel שישמש לשמירת הנתונים';
+    btnPickFile.style.display    = '';
+    btnAllowAccess.style.display = 'none';
   }
+}
+
+btnPickFile.addEventListener('click', async () => {
+  const result = await FileStore.pickFile();
+  if (result === 'ready') onSignedIn();
+});
+
+btnAllowAccess.addEventListener('click', async () => {
+  const granted = await FileStore.requestPermission();
+  if (granted) onSignedIn();
+  else alert('לא ניתנה גישה לקובץ');
+});
+
+window.addEventListener('load', async () => {
+  showOverlay('no-file');
+  const status = await FileStore.init();
+  if (status === 'ready') onSignedIn();
+  else showOverlay(status);
 });

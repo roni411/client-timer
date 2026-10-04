@@ -154,8 +154,7 @@ function stopTimer() {
     activity
   };
 
-  // Save to Google Sheets
-  Sheets.appendEntry(entry).catch(err => console.error('Failed to save entry:', err));
+  FileStore.appendEntry(entry).catch(err => console.error('Failed to save entry:', err));
 
   session = null;
   Storage.set(KEYS.SESSION, null);
@@ -254,7 +253,7 @@ function saveEdit() {
   // filter empty names, trim
   clients = editClients.map(c => c.trim()).filter(Boolean);
   Storage.set(KEYS.CLIENTS, clients);
-  Sheets.saveClients(clients).catch(err => console.error('Failed to save clients:', err));
+  FileStore.saveClients(clients).catch(err => console.error('Failed to save clients:', err));
   refreshClientSelect();
   showPanel('idle');
 }
@@ -387,74 +386,80 @@ document.getElementById('btn-allow-notif').addEventListener('click', () => {
 // ═══════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════
-const signinOverlay = document.getElementById('signin-overlay');
+const signinOverlay  = document.getElementById('signin-overlay');
+const overlayIcon    = document.getElementById('overlay-icon');
+const overlaySub     = document.getElementById('overlay-sub');
+const btnPickFile    = document.getElementById('btn-pick-file');
+const btnAllowAccess = document.getElementById('btn-allow-access');
 
-function onSignedIn() {
+async function onReady() {
   signinOverlay.style.display = 'none';
 
-  Sheets.readClients().then(sheetClients => {
-    if (sheetClients.length > 0) {
-      clients = sheetClients;
+  try {
+    const fileClients = await FileStore.readClients();
+    if (fileClients.length > 0) {
+      clients = fileClients;
       Storage.set(KEYS.CLIENTS, clients);
-    } else if (clients.length > 0) {
-      // Migrate existing localStorage clients to Sheets
-      console.log('Migrating clients to Sheets:', clients, 'signed in:', Sheets.isSignedIn());
-      Sheets.saveClients(clients).catch(err => console.error('Failed to migrate clients:', err));
     }
-
-    refreshClientSelect();
-
-    if (session) {
-      runningClientName.textContent = session.client;
-      activityInputRunning.value = session.activity || '';
-      activityInput.value = session.activity || '';
-      showPanel('running');
-      timerInterval = setInterval(tickTimer, 1000);
-      tickTimer();
-      requestNotificationPermission();
-    } else {
-      showPanel('idle');
-    }
-
-    if ('Notification' in window && Notification.permission === 'default' && !session) {
-      notifBar.style.display = 'flex';
-    }
-  }).catch(err => {
+  } catch (err) {
     console.error('Failed to load clients:', err);
-    refreshClientSelect();
-    showPanel(session ? 'running' : 'idle');
-  });
+  }
+
+  refreshClientSelect();
+
+  if (session) {
+    runningClientName.textContent = session.client;
+    activityInputRunning.value = session.activity || '';
+    activityInput.value = session.activity || '';
+    showPanel('running');
+    timerInterval = setInterval(tickTimer, 1000);
+    tickTimer();
+    requestNotificationPermission();
+  } else {
+    showPanel('idle');
+  }
+
+  if ('Notification' in window && Notification.permission === 'default' && !session) {
+    notifBar.style.display = 'flex';
+  }
 }
 
-function init() {
+function showOverlay(status) {
+  signinOverlay.style.display = 'flex';
+  if (status === 'need-permission') {
+    overlayIcon.textContent = '🔓';
+    overlaySub.innerHTML = `נדרשת גישה לקובץ:<br><strong>${FileStore.getFilename()}</strong>`;
+    btnPickFile.style.display    = 'none';
+    btnAllowAccess.style.display = '';
+  } else {
+    overlayIcon.textContent  = '📁';
+    overlaySub.textContent   = 'בחרי קובץ Excel שישמש לשמירת הנתונים';
+    btnPickFile.style.display    = '';
+    btnAllowAccess.style.display = 'none';
+  }
+}
+
+btnPickFile.addEventListener('click', async () => {
+  const result = await FileStore.pickFile();
+  if (result === 'ready') onReady();
+});
+
+btnAllowAccess.addEventListener('click', async () => {
+  const granted = await FileStore.requestPermission();
+  if (granted) onReady();
+  else alert('לא ניתנה גישה לקובץ');
+});
+
+async function init() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
 
-  signinOverlay.style.display = 'flex';
+  showOverlay('no-file'); // show overlay while checking
 
-  Sheets.onReauthNeeded = () => {
-    signinOverlay.style.display = 'flex';
-  };
-
-  window.addEventListener('load', () => {
-    if (typeof google === 'undefined') {
-      // GIS not loaded yet, wait
-      setTimeout(() => Sheets.init(ready => {
-        if (ready) onSignedIn();
-        else signinOverlay.style.display = 'flex';
-      }), 1000);
-    } else {
-      Sheets.init(ready => {
-        if (ready) onSignedIn();
-        else signinOverlay.style.display = 'flex';
-      });
-    }
-  });
+  const status = await FileStore.init();
+  if (status === 'ready') onReady();
+  else showOverlay(status);
 }
-
-document.getElementById('btn-signin').addEventListener('click', () => {
-  Sheets.signIn();
-});
 
 init();
