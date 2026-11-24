@@ -431,8 +431,10 @@ async function onSignedIn() {
   signinOverlay.style.display = 'none';
   try {
     const [clients, entries] = await Promise.all([FileStore.readClients(), FileStore.readEntries()]);
-    allClients = clients.length > 0 ? clients : load('ct_clients', []);
     allEntries = entries;
+    const fromFile = clients.length > 0 ? clients : load('ct_clients', []);
+    const fromEntries = [...new Set(entries.map(e => e.client).filter(Boolean))];
+    allClients = fromFile.length > 0 ? fromFile : fromEntries;
   } catch (err) {
     console.error('Failed to load data:', err);
     allClients = load('ct_clients', []);
