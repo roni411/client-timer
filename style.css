@@ -135,6 +135,19 @@ html, body {
   transition: box-shadow 0.15s;
 }
 .signin-btn:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.14); }
+.signin-btn-secondary {
+  margin-top: 4px;
+  padding: 8px 18px;
+  background: transparent;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.signin-btn-secondary:hover { color: var(--text); border-color: var(--text); }
 
 /* ---- ACTIVITY INPUT ---- */
 .activity-input {

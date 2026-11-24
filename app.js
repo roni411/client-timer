@@ -391,6 +391,7 @@ const overlayIcon    = document.getElementById('overlay-icon');
 const overlaySub     = document.getElementById('overlay-sub');
 const btnPickFile    = document.getElementById('btn-pick-file');
 const btnAllowAccess = document.getElementById('btn-allow-access');
+const btnPickOther   = document.getElementById('btn-pick-other');
 
 async function onReady() {
   signinOverlay.style.display = 'none';
@@ -431,23 +432,36 @@ function showOverlay(status) {
     overlaySub.innerHTML = `נדרשת גישה לקובץ:<br><strong>${FileStore.getFilename()}</strong>`;
     btnPickFile.style.display    = 'none';
     btnAllowAccess.style.display = '';
+    btnPickOther.style.display   = '';
+  } else if (status === 'pick-other') {
+    overlayIcon.textContent = '⚠️';
+    overlaySub.innerHTML = `לא ניתן לפתוח את הקובץ.<br>בחרי את הקובץ ידנית:`;
+    btnPickFile.style.display    = 'none';
+    btnAllowAccess.style.display = 'none';
+    btnPickOther.style.display   = '';
   } else {
     overlayIcon.textContent  = '📁';
     overlaySub.textContent   = 'בחרי קובץ Excel שישמש לשמירת הנתונים';
     btnPickFile.style.display    = '';
     btnAllowAccess.style.display = 'none';
+    btnPickOther.style.display   = 'none';
   }
 }
 
 btnPickFile.addEventListener('click', async () => {
-  const result = await FileStore.pickFile();
+  const result = await FileStore.openFile();
   if (result === 'ready') onReady();
 });
 
 btnAllowAccess.addEventListener('click', async () => {
   const granted = await FileStore.requestPermission();
   if (granted) onReady();
-  else alert('לא ניתנה גישה לקובץ');
+  else showOverlay('pick-other');
+});
+
+btnPickOther.addEventListener('click', async () => {
+  const result = await FileStore.openFile();
+  if (result === 'ready') onReady();
 });
 
 async function init() {

@@ -1,4 +1,4 @@
-const CACHE = 'client-timer-v1';
+const CACHE = 'client-timer-v2';
 const ASSETS = [
   './index.html',
   './reports.html',

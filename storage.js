@@ -98,6 +98,26 @@ const FileStore = {
     }
   },
 
+  // ── Open existing file ────────────────
+  // Returns: 'ready' | 'cancelled'
+  async openFile() {
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{
+          description: 'Excel Workbook',
+          accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] }
+        }]
+      });
+      this._handle = handle;
+      await _storeHandle(handle);
+      await this._load();
+      return 'ready';
+    } catch (e) {
+      if (e.name === 'AbortError') return 'cancelled';
+      throw e;
+    }
+  },
+
   // ── Request permission for stored handle ──
   // Returns: true (granted) | false
   async requestPermission() {
